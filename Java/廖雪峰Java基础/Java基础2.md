@@ -1,0 +1,831 @@
+# 异常处理
+
+`Throwable`是异常体系的根，它继承自`Object`。`Throwable`有两个体系：`Error`和`Exception`，`Error`表示严重的错误，程序对此一般无能为力，例如：
+
+- `OutOfMemoryError`：内存耗尽
+- `NoClassDefFoundError`：无法加载某个Class
+- `StackOverflowError`：栈溢出
+
+而`Exception`则是运行时的错误，它可以被捕获并处理。
+
+某些异常是应用程序逻辑处理的一部分，应该捕获并处理。例如：
+
+- `NumberFormatException`：数值类型的格式错误
+- `FileNotFoundException`：未找到文件
+- `SocketException`：读取网络失败
+
+Java规定：
+
+- 必须捕获的异常，包括`Exception`及其子类，但不包括`RuntimeException`及其子类，这种类型的异常称为`Checked Exception`。
+- 不需要捕获的异常，包括`Error`及其子类，`RuntimeException`及其子类。
+
+捕获异常使用`try...catch`语句，把可能发生异常的代码放到`try {...}`中，然后使用`catch`捕获对应的`Exception`及其子类。
+
+在方法定义的时候，使用`throws Xxx`表示该方法可能抛出的异常类型。调用方在调用的时候，必须强制捕获这些异常，否则编译器会报错。
+
+所有异常都可以调用`printStackTrace()`方法打印异常栈。
+
+## 捕获异常
+
+可以使用多个`catch`语句，每个`catch`分别捕获对应的`Exception`及其子类。
+
+多个`catch`语句只有一个能被执行。存在多个`catch`的时候，`catch`的顺序非常重要：子类必须写在前面。
+
+### finally
+
+`finally`语句块保证有无错误都会执行。
+
+- finally语句不是必须的
+- finally总是最后执行
+
+有时方法声明了可能抛出的异常，此时可以不写`catch`。
+
+#### 捕获多种异常
+
+`catch (IOException | NumberFormatException e)`
+
+## 抛出异常
+
+当某个方法抛出了异常时，如果当前方法没有捕获异常，异常就会被抛到上层调用方法，直到被捕获为止。
+
+通过`printStackTrace()`可以打印出方法的调用栈，类似：
+
+```java
+java.lang.NumberFormatException: null
+    at java.base/java.lang.Integer.parseInt(Integer.java:614)
+    at java.base/java.lang.Integer.parseInt(Integer.java:770)
+    at Main.process2(Main.java:16)
+    at Main.process1(Main.java:12)
+    at Main.main(Main.java:5)
+```
+
+`printStackTrace()`对于调试错误非常有用，上述信息表示：`NumberFormatException`是在`java.lang.Integer.parseInt`方法中被抛出的，从下往上看，调用层次依次是：
+
+1. `main()`调用`process1()`；
+2. `process1()`调用`process2()`；
+3. `process2()`调用`Integer.parseInt(String)`；
+4. `Integer.parseInt(String)`调用`Integer.parseInt(String, int)`。
+
+抛出异常：
+
+- 创建某个`Exception`的实例
+- 用`throw`语句抛出
+
+如果一个方法捕获了某个异常后，又在`catch`子句中抛出新的异常，就相当于把抛出的异常类型“转换”了。
+
+在构造异常的时候，把原始的`Exception`实例传进去，新的`Exception`就可以持有原始`Exception`信息。
+
+JVM会先执行`finally`，然后抛出异常。
+
+在极少数的情况下，我们需要获知所有的异常。如何保存所有的异常信息？方法是先用`origin`变量保存原始异常，然后调用`Throwable.addSuppressed()`，把原始异常添加进来，最后在`finally`抛出。
+
+**社区提问时要贴出完整的异常信息**
+
+## 自定义异常
+
+一个常见的做法是自定义一个`BaseException`作为“根异常”，然后，派生出各种业务类型的异常。`BaseException`需要从一个适合的`Exception`派生，通常建议从`RuntimeException`派生。
+
+自定义的`BaseException`应该提供多个构造方法：
+
+```java
+public class BaseException extends RuntimeException {
+    public BaseException() {
+        super();
+    }
+
+    public BaseException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public BaseException(String message) {
+        super(message);
+    }
+
+    public BaseException(Throwable cause) {
+        super(cause);
+    }
+}
+```
+
+## NullPointerException
+
+指针这个概念实际上源自C语言，Java语言中并无指针。我们定义的变量实际上是引用，Null Pointer更确切地说是Null Reference，不过两者区别不大。
+
+成员变量在定义时初始化：
+
+```java
+public class Person {
+    private String name = "";
+}
+```
+
+使用空字符串`""`而不是默认的`null`可避免很多`NullPointerException`，编写业务逻辑时，用空字符串`""`表示未填写比`null`安全得多。
+
+如果调用方一定要根据`null`判断，比如返回`null`表示文件不存在，那么考虑返回`Optional<T>`：
+
+```java
+public Optional<String> readFromFile(String file) {
+    if (!fileExist(file)) {
+        return Optional.empty();
+    }
+    ...
+}
+```
+
+这样调用方必须通过`Optional.isPresent()`判断是否有结果。
+
+从Java 14开始，如果产生了`NullPointerException`，JVM可以给出详细的信息告诉我们`null`对象到底是谁。
+
+可以在`NullPointerException`的详细信息中看到类似`... because "<local1>.address.city" is null`，意思是`city`字段为`null`，这样我们就能快速定位问题所在。
+
+这种增强的`NullPointerException`详细信息是Java 14新增的功能，但默认是关闭的，我们可以给JVM添加一个`-XX:+ShowCodeDetailsInExceptionMessages`参数启用它：
+
+```java
+java -XX:+ShowCodeDetailsInExceptionMessages Main.java
+```
+
+## 使用断言
+
+语句`assert x >= 0;`即为断言，断言条件`x >= 0`预期为`true`。如果计算结果为`false`，则断言失败，抛出`AssertionError`。
+
+使用`assert`语句时，还可以添加一个可选的断言消息：
+
+```java
+assert x >= 0 : "x must >= 0";
+```
+
+可恢复的程序错误，不应该使用断言。
+
+这是因为JVM默认关闭断言指令，即遇到`assert`语句就自动忽略了，不执行。
+
+要执行`assert`语句，必须给Java虚拟机传递`-enableassertions`（可简写为`-ea`）参数启用断言。所以，上述程序必须在命令行下运行才有效果：
+
+```java
+$ java -ea Main.java
+Exception in thread "main" java.lang.AssertionError
+	at Main.main(Main.java:5)
+```
+
+实际开发中很少使用断言，更好的方法是编写单元测试。
+
+## 使用JDK Logging
+
+日志就是Logging，它的目的是为了取代`System.out.println()`。
+
+Java标准库内置了日志包`java.util.logging`
+
+JDK的Logging定义了7个日志级别，从严重到普通：
+
+- SEVERE
+- WARNING
+- INFO
+- CONFIG
+- FINE
+- FINER
+- FINEST
+
+默认级别是INFO，因此，INFO级别以下的日志，不会被打印出来。
+
+可以根据配置文件调整日志，无需修改代码。
+
+## 使用Commons Logging
+
+Commons Logging的特色是，它可以挂接不同的日志系统，并通过配置文件指定挂接的日志系统。默认情况下，Commons Loggin自动搜索并使用Log4j（Log4j是另一个流行的日志系统），如果没有找到Log4j，再使用JDK Logging。
+
+Commons Logging定义了6个日志级别：
+
+- FATAL
+- ERROR
+- WARNING
+- INFO
+- DEBUG
+- TRACE
+
+默认级别是`INFO`。
+
+## 使用Log4j
+
+我们在实际使用的时候，并不需要关心Log4j的API，而是通过配置文件来配置它。
+
+以XML配置为例，使用Log4j的时候，我们把一个`log4j2.xml`的文件放到`classpath`下就可以让Log4j读取配置文件并按照我们的配置来输出日志。
+
+# 反射
+
+反射就是Reflection，Java的反射是指程序在运行期可以拿到一个对象的所有信息。
+
+反射是为了解决在运行期，对某个实例一无所知的情况下，如何调用其方法。
+
+## Class类
+
+每加载一种`类`，JVM就为其创建一个`Class`类型的实例，并关联起来。注意：这里的`Class`类型是一个名叫`Class`的`类`。它长这样：
+
+```java
+public final class Class {
+    private Class() {}
+}
+```
+
+以`String`类为例，当JVM加载`String`类时，它首先读取`String.class`文件到内存，然后，为`String`类创建一个`Class`实例并关联起来：
+
+JVM持有的每个`Class`实例都指向一个数据类型（`class`或`interface`）
+
+一个`Class`实例包含了该`class`的所有完整信息。
+
+如何获取一个`class`的`Class`实例？有三个方法：
+
+方法一：直接通过一个`class`的静态变量`class`获取：
+
+```java
+Class cls = String.class;
+```
+
+方法二：如果我们有一个实例变量，可以通过该实例变量提供的`getClass()`方法获取：
+
+```java
+String s = "Hello";
+Class cls = s.getClass();
+```
+
+方法三：如果知道一个`class`的完整类名，可以通过静态方法`Class.forName()`获取：
+
+```java
+Class cls = Class.forName("java.lang.String");
+```
+
+因为`Class`实例在JVM中是唯一的，所以，上述方法获取的`Class`实例是同一个实例。可以用`==`比较两个`Class`实例：
+
+用`instanceof`不但匹配指定类型，还匹配指定类型的子类。而用`==`判断`class`实例可以精确地判断数据类型，但不能作子类型比较。
+
+通常情况下，我们应该用`instanceof`判断数据类型，因为面向抽象编程的时候，我们不关心具体的子类型。只有在需要精确判断一个类型是不是某个`class`的时候，我们才使用`==`判断`class`实例。
+
+如果获取到了一个`Class`实例，我们就可以通过该`Class`实例来创建对应类型的实例：
+
+```java
+//获取String的Class实例：
+Class cls = String.class;
+//创建一个String实例：
+String s = (String) cls.newInstance();
+```
+
+#### 动态加载
+
+JVM在执行Java程序的时候，并不是一次性把所有用到的class全部加载到内存，而是第一次需要用到class时才加载。
+
+`Class`类提供了以下几个方法来获取字段：
+
+- Field getField(name)：根据字段名获取某个public的field（包括父类）
+- Field getDeclaredField(name)：根据字段名获取当前类的某个field（不包括父类）
+- Field[] getFields()：获取所有public的field（包括父类）
+- Field[] getDeclaredFields()：获取当前类的所有field（不包括父类）
+
+一个`Field`对象包含了一个字段的所有信息：
+
+- `getName()`：返回字段名称，例如，`"name"`；
+- `getType()`：返回字段类型，也是一个`Class`实例，例如，`String.class`；
+- `getModifiers()`：返回字段的修饰符，它是一个`int`，不同的bit表示不同的含义。
+
+```java
+Field f = String.class.getDeclaredField("value");
+f.getName(); //"value"
+f.getType(); // class [B 表示byte[]类型
+int m = f.getModifiers();
+Modifier.isFinal(m);//true
+Modifier.isPublic(m);//false
+Modifier.isProtected(m);//false
+Modifier.isPrivate(m);//true
+Modifier.isStatic(m);//false
+```
+
+#### 获取字段值
+
+```java
+import class Main{
+  public static void main(String[] args) throws Exception{
+    Object p = new Person("Xiao Ming");
+    Class c = p.getClass();
+    Field f = c.getDeclaredField("name");
+    Object value = f.get(p);
+    System.out.println(value);//"Xiao Ming"
+  }
+}
+
+class Person{
+  private String name;
+  public Person(String name){
+    this.name = name;
+  }
+}
+```
+
+上述代码先获取`Class`实例，再获取`Field`实例，然后，用`Field.get(Object)`获取指定实例的指定字段的值。
+
+运行代码，如果不出意外，会得到一个`IllegalAccessException`，这是因为`name`被定义为一个`private`字段，正常情况下，`Main`类无法访问`Person`类的`private`字段。要修复错误，可以将`private`改为`public`，或者，在调用`Object value = f.get(p);`前，先写一句：
+
+```java
+f.setAccessible(true);
+```
+
+调用`Field.setAccessible(true)`的意思是，别管这个字段是不是`public`，一律允许访问。
+
+#### 设置字段值
+
+设置字段值是通过`Field.set(Object, Object)`实现的，其中第一个`Object`参数是指定的实例，第二个`Object`参数是待修改的值。
+
+```java
+import java.lang.reflect.Field;
+public class Main{
+  public static void main(String[] args) throws Exception{
+    Person p = new Person("Xiao Ming");
+    System.out.println(p.getName());
+    Class c = p.getClass();
+    Field f = c.getDeclaredField("name");
+    f.setAccessible(true);
+    f.set(p,"Xiao Hong");
+    System.out.println(p.getName());
+  }
+}
+
+class Person{
+  private String name;
+  public Person(String name){
+    this.name = name;
+  }
+  public String getName(){
+    return this.name;
+  }
+}
+```
+
+通过反射读写字段是一种非常规方法，它会破坏对象的封装。
+
+## 调用方法
+
+`Class`类提供了以下几个方法来获取`Method`：
+
+- `Method getMethod(name, Class...)`：获取某个`public`的`Method`（包括父类）
+- `Method getDeclaredMethod(name, Class...)`：获取当前类的某个`Method`（不包括父类）
+- `Method[] getMethods()`：获取所有`public`的`Method`（包括父类）
+- `Method[] getDeclaredMethods()`：获取当前类的所有`Method`（不包括父类）
+
+一个`Method`对象包含一个方法的所有信息：
+
+- `getName()`：返回方法名称，例如：`"getScore"`；
+- `getReturnType()`：返回方法返回值类型，也是一个Class实例，例如：`String.class`；
+- `getParameterTypes()`：返回方法的参数类型，是一个Class数组，例如：`{String.class, int.class}`；
+- `getModifiers()`：返回方法的修饰符，它是一个`int`，不同的bit表示不同的含义。
+
+#### 调用方法
+
+```java
+import java.lang.reflect.Method;
+public class Main{
+  public static void main(String[] args) throws Exception{
+    //String对象
+    String s = "Hello world";
+    //获取String substring(int)方法，参数为int
+    Method m = String.class.getMethod("substring",int.class);
+    //在s对象上调用该方法并获取结果：
+    String r = (String) m.invoke(s,6);
+    //打印调用结果
+    System.out.println(r);
+  }
+}
+```
+
+对`Method`实例调用`invoke`就相当于调用该方法，`invoke`的第一个参数是对象实例，即在哪个实例上调用该方法，后面的可变参数要与方法参数一致，否则将报错。
+
+#### 调用静态方法
+
+如果获取到的Method表示一个静态方法，调用静态方法时，由于无需指定实例对象，所以`invoke`方法传入的第一个参数永远为`null`。
+
+```java
+public class Main{
+  public static void main(String[] args) throws Exception{
+    //获取Integer.parseInt(String)方法，参数为String
+    Method m = Integer.class.getMethod("parseInt",String.class);
+    //调用该静态方法并获取结果:
+    Integer n = (Integer) m.invoke(null,"12345");
+    //打印调用结果：
+    System.out.println(n);
+  }
+}
+```
+
+#### 调用非public方法
+
+和Field类似，对于非public方法，我们虽然可以通过`Class.getDeclaredMethod()`获取该方法实例，但直接对其调用将得到一个`IllegalAccessException`。为了调用非public方法，我们通过`Method.setAccessible(true)`
+
+```java
+import java.lang.reflect.Method;
+public class Main{
+  public static void main(String[] args) throws Exception{
+    Person p = new Person();
+    Method m = p.getClass().getDeclaredMethod("setName",String.class);
+    m.setAccessible(true);
+    m.invoke(p,"Bob");
+    System.out.println(p.name);
+  }
+}
+
+class Person{
+  String name;
+  private void setName(String name){
+    this.name = name;
+  }
+}
+```
+
+使用反射调用方法时，仍然遵循多态原则：即总是调用实际类型的覆写方法（如果存在）。
+
+## 调用构造方法
+
+通过反射来创建新的实例，可以调用Class提供的new Instance()方法，该方法的局限是只能调用该类的无参数构造方法，且需要是public。
+
+如果通过反射来创建新的实例，可以调用Class提供的newInstance()方法：
+
+```java
+Person p = Person.class.newInstance();
+```
+
+为了调用任意的构造方法，Java的反射API提供了Constructor对象，它包含一个构造方法的所有信息，可以创建一个实例。Constructor对象和Method非常类似，不同之处仅在于它是一个构造方法，并且，调用结果总是返回实例：
+
+```java
+import java.lang.reflect.Constructor;
+public class Main{
+  public static void main(String[] args) throws Exception{
+    //获取构造方法Integer(int)
+    Constructor cons1 = Integer.class.getConstructor(int.class);
+    //调用构造方法：
+    Integer n1 = (Integer) cons1.newInstance(123);
+    System.out.println(n1);
+    
+    //获取构造方法Integer(String)
+    Constructor cons2 = Integer.class.getConstructor(String.class);
+    Integer n2 = (Integer) cons2.newInstance("456");
+    System.out.println(n2);
+  }
+}
+```
+
+通过Class实例获取Constructor的方法如下：
+
+- `getConstructor(Class...)`：获取某个`public`的`Constructor`；
+- `getDeclaredConstructor(Class...)`：获取某个`Constructor`；
+- `getConstructors()`：获取所有`public`的`Constructor`；
+- `getDeclaredConstructors()`：获取所有`Constructor`。
+
+`Constructor`总是当前类定义的构造方法，和父类无关，因此不存在多态的问题。
+
+调用非`public`的`Constructor`时，必须首先通过`setAccessible(true)`设置允许访问。`setAccessible(true)`可能会失败。
+
+## 获取继承关系
+
+当我们获取到某个`Class`对象时，实际上就获取到了一个类的类型：
+
+```java
+Class cls = String.class; // 获取到String的Class
+```
+
+还可以用实例的`getClass()`方法获取：
+
+```java
+String s = "";
+Class cls = s.getClass(); // s是String，因此获取到String的Class
+```
+
+最后一种获取`Class`的方法是通过`Class.forName("")`，传入`Class`的完整类名获取：
+
+```java
+Class s = Class.forName("java.lang.String");
+```
+
+#### 获取父类的Class
+
+```java
+public class Main{
+	public static void main(String[] args){
+    Class i = Integer.calss;
+    Class n = i.getSuperclass();
+    System.out.println(n);
+    Class o = n.getSuperclass();
+    System.out.println(o);
+    System.out.println(o.getSuperclass());
+  }
+}
+```
+
+#### 获取interface
+
+由于一个类可能实现一个或多个接口，通过`Class`我们就可以查询到实现的接口类型。
+
+```java
+import java.lang.reflect.Method;
+public class Main{
+  public static void main(String[] args) throws Exception{
+    Class s = Integer.class;
+    Class[] is = s.getInterfaces();
+    for(Class i : is){
+      System.out.println(i);
+    }
+  }
+}
+```
+
+`Integer`的父类是`Number`，`Number`实现的接口是`java.io.Serializable`。
+
+此外，对所有`interface`的`Class`调用`getSuperclass()`返回的是`null`，获取接口的父接口要用`getInterfaces()`.
+
+如果是两个`Class`实例，要判断一个向上转型是否成立，可以调用`isAssignableFrom()`：
+
+```java
+// Integer i = ?
+Integer.class.isAssignableFrom(Integer.class); // true，因为Integer可以赋值给Integer
+// Number n = ?
+Number.class.isAssignableFrom(Integer.class); // true，因为Integer可以赋值给Number
+// Object o = ?
+Object.class.isAssignableFrom(Integer.class); // true，因为Integer可以赋值给Object
+// Integer i = ?
+Integer.class.isAssignableFrom(Number.class); // false，因为Number不能赋值给Integer
+```
+
+## 动态代理
+
+所有`interface`类型的变量总是通过某个实例向上转型并赋值给接口类型变量的。
+
+Java标准库提供了一种动态代理（Dynamic Proxy）的机制：可以在运行期动态创建某个`interface`的实例。
+
+所谓动态代理是和静态相对应的。
+
+```java
+// 定义接口
+public interface Hello{
+  void morning(sting);
+}
+// 编写实现类
+public class HelloWorld implements Hello{
+  public void morning(String name){
+    System.out.println("Good Morning,"+name);
+  }
+}
+// 创建实例，转型为接口并调用
+Hello hello = new HelloWorld();
+hello.morning("Bob");
+```
+
+没有实现类但是在运行期动态创建了一个接口对象的方式，我们称为动态代码。
+
+一个最简单的动态代理实现如下：
+
+```java
+package com.learn.JavaExamples;
+
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+
+public class DynamicProxyTest{
+    public static void main(String[] args){
+        InvocationHandler handler = new InvocationHandler(){
+            @Override
+            public Object invoke(Object proxy,Method method,Object[] args) throws Throwable{
+                System.out.println(method);
+                if(method.getName().equals("morning")){
+                    System.out.println("Good morning"+args[0]);
+                }
+                return null;
+            }
+        };
+        Hello2 hello = (Hello2) Proxy.newProxyInstance(
+                Hello2.class.getClassLoader(),//传入ClassLoader
+                new Class[]{Hello2.class},//传入要实现的接口
+                handler);//传入处理调用方法的InvocationHandler
+        hello.morning("Bob");
+    }
+}
+
+interface Hello2 {
+    void morning(String name);
+}
+/*
+invoke方法：
+1.Object proxy:代理对象，即通过Proxy.newProxyInstance方法创建的代理对象。
+2.Method method:被调用的方法的Method对象，包含了方法的信息，如方法名、参数类型等。
+3.Object[] args:调用方法时传递的参数数组。
+*/
+```
+
+```java
+// InvocationHandler作用就是，当代理对象的原本方法被调用的时候，会重定向到一个方法，
+// 这个方法就是InvocationHandler里面定义的内容，同时会替代原本方法的结果返回。
+// InvocationHandler接收三个参数：proxy，代理后的实例对象。 method，对象被调用方法。args，调用时的参数。
+```
+
+## 注解Annotation
+
+### 使用注解
+
+注解是放在Java源码的类、方法、字段、参数前的一种特殊“注释”。
+
+注释会被编译器直接忽略，注解则可以被编译器打包进入class文件，因此，注解是一种用作标注的“元数据“。
+
+Java的注解可以分为三类：
+
+第一类是由编译器使用的注解，例如：
+
+- `@Override`：让编译器检查该方法是否正确地实现了覆写；
+- `@SuppressWarnings`：告诉编译器忽略此处代码产生的警告。
+
+这类注解不会被编译进入`.class`文件，它们在编译后就被编译器扔掉了。
+
+第二类是由工具处理`.class`文件使用的注解，比如有些工具会在加载class的时候，对class做动态修改，实现一些特殊的功能。这类注解会被编译进入`.class`文件，但加载结束后并不会存在于内存中。这类注解只被一些底层库使用，一般我们不必自己处理。
+
+第三类是在程序运行期能够读取的注解，它们在加载后一直存在于JVM中，这也是最常用的注解。例如，一个配置了`@PostConstruct`的方法会在调用构造方法后自动被调用（这是Java代码读取该注解实现的功能，JVM并不会识别该注解）。
+
+定义一个注解时，还可以定义配置参数。配置参数可以包括：
+
+- 所有基本类型；
+- String；
+- 枚举类型；
+- 基本类型、String、Class以及枚举的数组。
+
+因为配置参数必须是常量，所以，上述限制保证了注解在定义时就已经确定了每个参数的值。
+
+注解的配置参数可以有默认值，缺少某个配置参数时将使用默认值。
+
+此外，大部分注解会有一个名为`value`的配置参数，对此参数赋值，可以只写常量，相当于省略了value参数。
+
+### 定义注解
+
+Java语言使用`@interface`语法来定义注解（`Annotation`），它的格式如下：
+
+```java
+public @interface Report{
+  int type() default 0;
+  String level() default "info";
+  String value() default "";
+}
+```
+
+注解的参数类似无参数方法，可以用`default`设定一个默认值（强烈推荐）。最常用的参数应当命名为`value`。
+
+#### 元注解
+
+有一些注解可以修饰其他注解，这些注解就称为元注解（meta annotation）。
+
+最常用的元注解是`@Target`。使用`@Target`可以定义`Annotation`能够被应用于源码的哪些位置：
+
+- 类或接口：`ElementType.TYPE`；
+- 字段：`ElementType.FIELD`；
+- 方法：`ElementType.METHOD`；
+- 构造方法：`ElementType.CONSTRUCTOR`；
+- 方法参数：`ElementType.PARAMETER`。
+
+```java
+@Target(ElementType.METHOD)
+public @interface Report{
+  int type() default 0;
+  String level() default "info";
+  String value() default "";
+}
+```
+
+定义注解`@Report`可用在方法或字段上，可以把`@Target`注解参数变为数组`{ ElementType.METHOD, ElementType.FIELD }`：
+
+```java
+@Target({
+  ElementType.METHOD,
+  ElementType.FIELD
+})
+public @interface Report{
+  ...
+}
+```
+
+#### @Retention
+
+另一个重要的元注解`@Retention`定义了`Annotation`的生命周期：
+
+- 仅编译期：`RetentionPolicy.SOURCE`；
+- 仅class文件：`RetentionPolicy.CLASS`；
+- 运行期：`RetentionPolicy.RUNTIME`。
+
+如果`@Retention`不存在，则该`Annotation`默认为`CLASS`。因为通常我们自定义的`Annotation`都是`RUNTIME`，所以，务必要加上`@Retention(RetentionPolicy.RUNTIME)`这个元注解。
+
+#### @Repeatable
+
+使用`@Repeatable`这个元注解可以定义`Annotation`是否可重复。
+
+#### @Inherited
+
+使用`@Inherited`定义子类是否可继承父类定义的`Annotation`。`@Inherited`仅针对`@Target(ElementType.TYPE)`类型的`annotation`有效，并且仅针对`class`的继承，对`interface`的继承无效：
+
+```java
+@Inherited
+@Target(ElementType.TYPE)
+public @interface Report{
+  int type() default 0;
+  String level() default "info";
+  String value() default "";
+}
+```
+
+在使用的时候，如果一个类用到了`@Report`：
+
+```java
+@Report(type=1)
+public class Person{
+}
+```
+
+则它的子类默认也定义了该注解。
+
+我们总结一下定义`Annotation`的步骤：
+
+第一步，用`@interface`定义注解：
+
+```
+public @interface Report {
+}
+```
+
+第二步，添加参数、默认值：
+
+```
+public @interface Report {
+    int type() default 0;
+    String level() default "info";
+    String value() default "";
+}
+```
+
+把最常用的参数定义为`value()`，推荐所有参数都尽量设置默认值。
+
+第三步，用元注解配置注解：
+
+```
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface Report {
+    int type() default 0;
+    String level() default "info";
+    String value() default "";
+}
+```
+
+其中，必须设置`@Target`和`@Retention`，`@Retention`一般设置为`RUNTIME`，因为我们自定义的注解通常要求在运行期读取。一般情况下，不必写`@Inherited`和`@Repeatable`。
+
+### 处理注解
+
+#### 使用注解
+
+注解如何使用，完全由程序自己决定。例如，JUnit是一个测试框架，它会自动运行所有标记为`@Test`的方法。
+
+我们来看一个`@Range`注解，我们希望用它来定义一个`String`字段的规则：字段长度满足`@Range`的参数定义：
+
+```java
+package com.learn.JavaExamples;
+
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+import java.lang.reflect.Field;
+
+public class UseAnnotation {
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.FIELD)
+    public @interface Range{
+        int min() default 0;
+        int max() default 255;
+    }
+    public class Person3{
+        @Range(min=1,max=20)
+        public String name;
+
+        @Range(max = 10)
+        public String city;
+    }
+    void check(Person3 person) throws IllegalArgumentException,ReflectiveOperationException{
+        // 遍历所有Field
+        for(Field field : person.getClass().getFields()){
+            //获取Field定义的@Range:
+            Range range = field.getAnnotation(Range.class);
+            //如果@Range存在:
+            if(range!=null){
+                //获取Field的值:
+                Object value = field.get(person);
+                //如果值是String:
+                if (value instanceof String){
+                    //判断值是否满足@Range的min/max
+                    String s = (String) value;
+                    if (s.length() < range.min() || s.length() > range.max()){
+                        throw new IllegalArgumentException("Invalid field:"+field.getName());
+                    }
+                }
+            }
+        }
+    }
+}
+```
+
+可以在运行期通过反射读取`RUNTIME`类型的注解，注意千万不要漏写`@Retention(RetentionPolicy.RUNTIME)`，否则运行期无法读取到该注解。
