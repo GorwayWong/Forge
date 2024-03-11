@@ -1,4 +1,7 @@
 # Forge
 keep learning
 
-creating a new branch is quick & simple.
+HEAD
+
+creating a new branch is quick AND simple.
+
