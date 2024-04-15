@@ -341,3 +341,41 @@ new Object()
 - 通过`JSON.parse()`可以将一个JSON串转换为一个对象
 - 通过`JSON.stringify()`将一个对象转换为JSON串
 
+### 常用对象
+
+#### 数组
+
+数组的创建方式:
+
+- `new Array()`创建空数组
+- `new Array(5)`创建数组时给定长度
+- `new Array(ele1,ele2,ele3,...,elen)`创建数组时指定元素值
+- `[ele1,ele2,ele3,...,elen]`
+
+### 常见事件
+
+事件的触发:行为触发 DOM触发
+
+- 鼠标事件
+- 键盘事件
+- 表单事件
+- 页面加载事件 onload
+
+事件的绑定方式
+
+- 通过元素的属性绑定
+- 通过DOM编程动态绑定
+
+注意:
+
+- 一个事件可以同时绑定多个函数
+- 一个函数可以同时绑定多个事件
+
+### 表单事件
+
+`onsubmit`要写到form表单里,`type=“submit”`的button只是触发该form
+
+`onreset`也是
+
+### 事件通过DOM编程绑定和触发
+
