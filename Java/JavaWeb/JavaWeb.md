@@ -379,3 +379,106 @@ new Object()
 
 ### 事件通过DOM编程绑定和触发
 
+```html
+<script>
+  // 通过dom获得要操作的元素
+	var btn = document.getElementById("btn1")
+  // 绑定一个单击事件
+  btn.onclick = function(){
+    alert("button clicked.")
+  }
+</script>
+```
+
+## BOM编程
+
+window
+
+- history 历史
+- location 地址栏
+- document 浏览器打开的html文档
+- console F12开发者工具的控制台
+- screen 屏幕
+- navigator 浏览器软件本身
+- sessionStorage 会话级存储
+- localStorage  持久级存储
+
+### window 对象是由浏览器提供的
+
+无需new
+
+#### 三种弹窗方式
+
+- alert
+- prompt
+- confirm
+
+...
+
+## DOM编程
+
+document对象代表整个html文档,DOM编程就是使用document对象的API完成对网页HTML文档进行动态修改,以实现网页数据和样式动态变化效果的编程.
+
+1. 获得document dom树
+
+   window.document
+
+2. 从document中获取要操作的元素
+
+   - 直接获取
+
+     ```js
+     var el1 = document.getElementById() // 根据元素的id值获取页面上唯一的一个元素
+     var els = document.getElementByTagName() // 根据元素的标签名获取多个同名元素
+     var els = document.getElementByName() // 根据元素的name属性值获取多个元素
+     var els = document.getElementByClassName() // 根据元素的class属性值获取多个元素
+     ```
+
+   - 间接获取
+
+     ```js
+     var cs = div01.children // 通过父元素获取第一个子元素
+     var firstChild = div01.firstElementChild // 通过父元素获取最后一个子元素
+     var lastChild = div01.lastElementChild // 通过父元素获取最后一个子元素
+     var parent = pinput.parentElement // 通过子元素获取父元素
+     var pElement = pinput.previousElementSibling // 获取前面的第一个元素
+     var nElement = pinput.nextElementSibling // 获取后面的第一个元素
+     ```
+
+3. 对元素进行操作
+
+   - 操作元素的属性 `元素名.属性名=""`
+   
+   - 操作元素的样式 
+   
+     `元素名.style.样式名=“”`原始样式名中的“-”符号要转换驼峰式 background-color➡️backgroundColor 
+   
+   - 操作元素的文本
+   
+     `元素名.innerText`只识别文本
+   
+     `元素名.innerHTML	`同时可以识别HTML结构
+   
+   - 增删元素
+   
+     `var element = document.createElement("元素名")`
+   
+     `父元素.appendChild(子元素)`
+   
+     `父元素.insert Before(新元素,参照元素)`
+   
+     `父元素.replaceChild(新元素,被替换的元素)`
+   
+     哪个元素调用remove该元素就会从dom树中删除
+   
+   
+
+# XML
+
+可扩展标记语言,常见配置文件类型:
+
+- properties文件,例如druid连接池就是使用properties文件作为配置文件
+- XML文件,例如Tomcat使用的
+- YAML文件,例如SpringBoot使用的
+- json文件,常用来做文件传输,也可以用来做前端或者移动端的配置文件
+
