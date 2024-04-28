@@ -482,3 +482,9 @@ document对象代表整个html文档,DOM编程就是使用document对象的API�
 - YAML文件,例如SpringBoot使用的
 - json文件,常用来做文件传输,也可以用来做前端或者移动端的配置文件
 
+# Tomcat
+
+webapps文件夹是网络应用的路径,访问方式:
+
+http://localhost:8080/examples/index.html
+
