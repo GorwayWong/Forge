@@ -488,3 +488,14 @@ webapps文件夹是网络应用的路径,访问方式:
 
 http://localhost:8080/examples/index.html
 
+## Servlet
+
+1. servlet-api导入问题
+
+   servlet-api 编码的时候需要,运行的时候,在服务器环境中,由服务软件(Tomcat)提供
+
+2. Content-Type响应头问题
+
+   MIME类型响应头 媒体类型、文件类型、响应的数据类型
+
+   MIME类型用于告诉客户端响应的数据是什么类型的数据,客户端以此类型决定用什么方式解析响应体
