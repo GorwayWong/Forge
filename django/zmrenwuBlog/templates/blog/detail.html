@@ -1,0 +1,39 @@
+{% load comments_extras %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ post.title }}</title>
+</head>
+<body>
+<h1>{{ post.title }}</h1>
+<div>
+    {{ post.body|safe }}
+</div>
+{% if post.toc %}
+    <div class="widget widget-content">
+      <h3 class="widget-title">文章目录</h3>
+      <div class="toc">
+        <ul>
+          {{ post.toc|safe }}
+        </ul>
+      </div>
+    </div>
+  {% endif %}
+<span class="views-count"><a href="#">{{ post.views }} 阅读</a></span>
+<h3>发表评论</h3>
+{% show_comment_form post %}
+<div class="comment-list-panel">
+    {% show_comments post %}
+</div>
+</body>
+{% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible" role="alert">
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
+                aria-hidden="true">&times;</span></button>
+        {{ message }}
+      </div>
+    {% endfor %}
+{% endif %}
+</html>
