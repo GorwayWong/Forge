@@ -59,7 +59,61 @@ void User::set_friend(size_t index, const std::string& name)
   _friends[index] = name;
 }
 
-/** 
- * STUDENT TODO:
- * The definitions for your custom operators and special member functions will go here!
- */
+std::ostream& operator << (std::ostream& out, const User& user){
+  out << "User(name=" <<user.get_name()<<", "<<"friends=[";
+  std::string* str = user._friends;
+  for (size_t i = 0; i < user._size; i++)
+  {
+    if(i != user._size - 1){
+      out << *str <<", ";
+    }else{
+      out << *str;
+    }
+    ++str;
+  }
+  out << "])";
+  return out;
+}
+
+User::~User(){
+  delete[] this->_friends;// 删除数组必须带方括号
+}
+
+// 避免只拷贝指针导致的指向同一块内存
+User::User(const User& user) 
+: _name(user._name),_capacity(user._capacity),_size(user._size){
+  // 不能在成员初始化列表中写_friends(new std::string[_capacity]),此时_capacity没有值
+  this->_friends = new std::string[this->_capacity];
+  for (size_t i = 0; i < this->_size; i++)
+  {
+    this->_friends[i] = user._friends[i];
+  }
+}
+
+User& User::operator = (const User& user){
+  this->_name = user._name;
+  this->_size = user._size;
+  this->_capacity = user._capacity;
+  delete[] this->_friends;// 不加这个旧的指针会内存泄漏
+  this->_friends = new std::string[_capacity];
+    for (size_t i = 0; i < this->_size; i++)
+  {
+    this->_friends[i] = user._friends[i];
+  }
+  
+  return *this;
+}
+
+User& User::operator+=(User& rhs) {
+  if(this->_size<=_capacity){
+    this->add_friend(rhs.get_name());
+  }
+  if(rhs._size<=rhs._capacity){
+    rhs.add_friend(this->get_name());
+  }
+  return *this;
+}
+
+bool User::operator<(const User& rhs) const{
+  return this->_name < rhs._name;
+}
