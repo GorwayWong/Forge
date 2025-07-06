@@ -24,8 +24,9 @@ public:
   friend std::ostream& operator << (std::ostream& out, const User& user);
 
 private:
+  size_t _capacity;
   std::string _name;
   std::string* _friends;
   size_t _size;
-  size_t _capacity;
+
 };

@@ -83,6 +83,7 @@ User::~User(){
 User::User(const User& user) 
 : _name(user._name),_capacity(user._capacity),_size(user._size){
   // 不能在成员初始化列表中写_friends(new std::string[_capacity]),此时_capacity没有值
+  //当初始化_friends时，它使用了_capacity的值。但根据C++标准，成员变量的初始化顺序只取决于类定义中的声明顺序，而不是初始化列表中的顺序。
   this->_friends = new std::string[this->_capacity];
   for (size_t i = 0; i < this->_size; i++)
   {

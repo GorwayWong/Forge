@@ -7,8 +7,7 @@
 #include <algorithm>
 #include <type_traits>
 #include <vector>
-
-/** STUDENT_TODO: You will need to include a relevant header file here! */
+#include <optional>
 
 #include "autograder/utils.hpp"
 
@@ -52,10 +51,15 @@ public:
    * @param course_title The title of the course to find.
    * @return You will need to figure this out!
    */
-  FillMeIn find_course(std::string course_title)
+  std::optional<Course> find_course(std::string course_title)
   {
-    /* STUDENT_TODO: Implement this method! You will need to change the return
-     * type. */
+    for (auto it = courses.begin(); it != courses.end(); it++)
+    {
+      if ((*it).title == course_title){
+        return *it;
+      }
+    }
+    return {};
   }
 
 private:
@@ -75,13 +79,32 @@ main(int argc, char* argv[])
   if (argc == 2) {
     CourseDatabase db("autograder/courses.csv");
     auto course = db.find_course(argv[1]);
-    
-    /******************************************************** 
-    STUDENT_TODO: Populate the output string with the right information to print
-    Please pay special attention to the README here
-    ********************************************************/
 
-    std::string output = /* STUDENT_TODO */
+    // 先用and_then转换成装别的类型的std::optional<std::string>, 不要用transform因为它把返回的optional自动包装成optional<optional<string>>
+    // std::string output = course.and_then([](Course course) -> std::optional<std::string>{
+    //   std::optional<std::string> str;
+    //   str = "Found course: " + course.title +"," + course.number_of_units +"," + course.quarter + "\n";
+    //   return str;
+    // })
+    // .or_else([]() -> std::optional<std::string> {
+    //   std::optional<std::string> str;
+    //   str = "Course not found.\n";
+    //   return str;
+    // })
+    // .value();
+
+    //用transform时：
+    std::string output = course.transform([](Course course) -> std::string{
+      std::string str;
+      str = "Found course: " + course.title +"," + course.number_of_units +"," + course.quarter + "\n";
+      return str;
+    })
+    .or_else([]() -> std::optional<std::string> {
+      std::optional<std::string> str;
+      str = "Course not found.\n";
+      return str;
+    })
+    .value();
 
     /********************************************************
      DO NOT MODIFY ANYTHING BELOW THIS LINE PLEASE
