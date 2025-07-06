@@ -13,6 +13,7 @@ namespace cs106l {
 template <typename T> class unique_ptr {
 private:
   /* STUDENT TODO: What data must a unique_ptr keep track of? */
+  T* pointerT;
 
 public:
   /**
@@ -22,7 +23,8 @@ public:
    */
   unique_ptr(T* ptr) {
     /* STUDENT TODO: Implement the constructor */
-    throw std::runtime_error("Not implemented: unique_ptr(T* ptr)");
+    this->pointerT = ptr;
+    // throw std::runtime_error("Not implemented: unique_ptr(T* ptr)");
   }
 
   /**
@@ -30,7 +32,8 @@ public:
    */
   unique_ptr(std::nullptr_t) {
     /* STUDENT TODO: Implement the nullptr constructor */
-    throw std::runtime_error("Not implemented: unique_ptr(std::nullptr_t)");
+    this->pointerT = nullptr;
+    // throw std::runtime_error("Not implemented: unique_ptr(std::nullptr_t)");
   }
 
   /**
@@ -45,7 +48,9 @@ public:
    */
   T& operator*() {
     /* STUDENT TODO: Implement the dereference operator */
-    throw std::runtime_error("Not implemented: operator*()");
+    // 如果 pointerT 是 T* 类型（指针），则 *pointerT 就是对指针解引用，得到的是 T&（即 T 的引用），不是单纯的 T 类型！
+    return *(this->pointerT);
+    // throw std::runtime_error("Not implemented: operator*()");
   }
 
   /**
@@ -54,7 +59,9 @@ public:
    */
   const T& operator*() const {
     /* STUDENT TODO: Implement the dereference operator (const) */
-    throw std::runtime_error("Not implemented: operator*() const");
+    // 解引用返回的T& 可以隐式转为 const T&
+    return *(this->pointerT);
+    // throw std::runtime_error("Not implemented: operator*() const");
   }
 
   /**
@@ -64,7 +71,8 @@ public:
    */
   T* operator->() {
     /* STUDENT TODO: Implement the arrow operator */
-    throw std::runtime_error("Not implemented: operator->()");
+    return this->pointerT;
+    // throw std::runtime_error("Not implemented: operator->()");
   }
 
   /**
@@ -74,7 +82,8 @@ public:
    */
   const T* operator->() const {
     /* STUDENT TODO: Implement the arrow operator */
-    throw std::runtime_error("Not implemented: operator->() const");
+    return this->pointerT;
+    // throw std::runtime_error("Not implemented: operator->() const");
   }
 
   /**
@@ -84,7 +93,12 @@ public:
    */
   operator bool() const {
     /* STUDENT TODO: Implement the boolean conversion operator */
-    throw std::runtime_error("Not implemented: operator bool() const");
+    if (this->pointerT != nullptr){
+      return true;
+    }else{
+      return false;
+    }
+    // throw std::runtime_error("Not implemented: operator bool() const");
   }
 
   /** STUDENT TODO: In the space below, do the following:
@@ -94,6 +108,22 @@ public:
    * - Implement the move constructor
    * - Implement the move assignment operator
    */
+  ~unique_ptr(){
+    delete this->pointerT;
+  }
+  unique_ptr(const unique_ptr& other) = delete;
+  unique_ptr& operator=(const unique_ptr& other) = delete;
+  unique_ptr(unique_ptr&& other){// 应该接受非const的右值引用
+    delete this->pointerT;
+    this->pointerT = other.pointerT;
+    delete other.pointerT;
+  }
+  unique_ptr& operator=(unique_ptr&& other){
+    delete this->pointerT;
+    this->pointerT = other.pointerT;
+    delete other.pointerT;
+    return *this;// 应该返回*this，this是指针，*this是解引用的对象
+  }
 };
 
 /**
