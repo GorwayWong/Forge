@@ -52,7 +52,18 @@ template <typename T> struct ListNode {
  */
 template <typename T> cs106l::unique_ptr<ListNode<T>> create_list(const std::vector<T>& values) {
   /* STUDENT TODO: Implement this method */
-  
+  if (values.empty()){
+    return nullptr;
+  }
+  cs106l::unique_ptr<ListNode<T>> head = nullptr;
+  for (int i = values.size() - 1; i >= 0; i--)
+  {
+    // 使用make_unique，避免暴露原始指针，如果手动创建两个unique_ptr指向同一个资源，其中一个离开作用域时会释放资源，导致另一个释放时报错
+    cs106l::unique_ptr<ListNode<T>> node = cs106l::make_unique<ListNode<T>>(values.at(i));//根据make_unique的定义，values.at(i)返回的引用，用来传给ListNode<T>的构造器
+    node->next = std::move(head);
+    head = std::move(node);
+  }
+  return head;
   // throw std::runtime_error("Not implemented: createList");
 }
 

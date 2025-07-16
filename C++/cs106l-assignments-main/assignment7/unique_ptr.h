@@ -109,21 +109,32 @@ public:
    * - Implement the move assignment operator
    */
   ~unique_ptr(){
-    delete this->pointerT;
+    delete this->pointerT;// 专门管理外部分配的动态资源，其他普通类的析构函数只释放自己拥有的资源，不会释放外部资源。unique_ptr不一样
   }
   unique_ptr(const unique_ptr& other) = delete;
   unique_ptr& operator=(const unique_ptr& other) = delete;
   unique_ptr(unique_ptr&& other){// 应该接受非const的右值引用
-    delete this->pointerT;
+    // delete this->pointerT; // 移动构造中，此时this->pointerT还没有资源，直接调用delete会报错
     this->pointerT = other.pointerT;
-    delete other.pointerT;
+    // delete other.pointerT; // 不能delete掉，移动语义的目的是高效地转移资源的所有权，而不是复制或销毁资源。
+    other.pointerT = nullptr;
+    // 将 other 的资源“偷”过来，并确保 other 处于有效但空的状态（通常是 nullptr）。
   }
   unique_ptr& operator=(unique_ptr&& other){
+    if (this == &other){// this是指针类型，other是引用类型，不能直接比较
+      return *this;
+    }
     delete this->pointerT;
     this->pointerT = other.pointerT;
-    delete other.pointerT;
+    // delete other.pointerT; // 不能delete掉，移动语义的目的是高效地转移资源的所有权，而不是复制或销毁资源。
+    // 先释放当前资源（如果有），然后“偷” other 的资源，并确保 other 处于空状态。
+    other.pointerT = nullptr;
     return *this;// 应该返回*this，this是指针，*this是解引用的对象
   }
+  /*
+  在模板类的成员函数实现中，当你在类内部定义成员函数时，不需要在类名后面加 <T>。因为此时你已经在类的模板作用域内，编译器知道 unique_ptr 是一个模板类。
+  但是，当你在类外部定义成员函数时（即分离声明和实现），就需要写成 template <typename T> unique_ptr<T>::~unique_ptr() 这样的形式。
+ */
 };
 
 /**
